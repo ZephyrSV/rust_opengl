@@ -1,7 +1,6 @@
 use glfw;
 pub struct FpsCounter {
     frame_counter: u32,
-    last_time : f64,
     last_print_time: f64,
 }
 
@@ -9,12 +8,11 @@ impl FpsCounter {
     pub fn new(glfw: &glfw::Glfw) -> FpsCounter {
         FpsCounter {
             frame_counter: 0,
-            last_time: 0.0,
             last_print_time: glfw.get_time(),
         }
     }
 
-    pub fn update(&mut self, glfw: &glfw::Glfw) {
+    pub fn update(&mut self) {
         self.frame_counter += 1;
     } 
 

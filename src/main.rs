@@ -1,11 +1,11 @@
 extern crate gl;
 extern crate glfw;
 
-use glfw::{Action, Context, Key};
+use glfw::{Context}; // Action Key
 mod fps_counter;
 use fps_counter::FpsCounter;
 mod shader_n_program;
-use shader_n_program::{Shader, ShaderType, ShaderError, ShaderProgram};
+use shader_n_program::{Shader, ShaderType, ShaderProgram};
 mod vao_n_vbo;
 use vao_n_vbo::{VAO, VBO, Vertex};
 
@@ -49,7 +49,7 @@ fn main() {
     }
 
     #[rustfmt::skip]
-    const vertices: [Vertex; 3] = [
+    const VERTICES: [Vertex; 3] = [
         Vertex([-0.5, -0.5], [1.0, 0.0, 0.0]),
         Vertex([0.5,  -0.5], [0.0, 1.0, 0.0]),
         Vertex([0.0,   0.5], [0.0, 0.0, 1.0])
@@ -57,7 +57,7 @@ fn main() {
 
     let vertex_buffer = VBO::new(gl::ARRAY_BUFFER);
     unsafe {
-        vertex_buffer.set_data(&vertices, gl::STATIC_DRAW);
+        vertex_buffer.set_data(&VERTICES, gl::STATIC_DRAW);
     }
     
     let vertex_array = VAO::new();
@@ -98,7 +98,7 @@ fn main() {
         window.swap_buffers();
 
         // Calculate frame rate
-        fps_counter.update(&glfw);
+        fps_counter.update();
         fps_counter.print_if_necessary(&glfw);
     }
 }

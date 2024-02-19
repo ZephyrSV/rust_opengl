@@ -1,4 +1,3 @@
-use glfw;
 use gl::types::{GLuint, GLint};
 
 type Pos = [f32; 2];

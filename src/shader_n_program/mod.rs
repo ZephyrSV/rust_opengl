@@ -1,5 +1,3 @@
-use glfw;
-
 pub struct Shader {
     id: gl::types::GLuint,
 }
