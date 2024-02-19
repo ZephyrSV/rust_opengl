@@ -1,7 +1,7 @@
 extern crate gl;
 extern crate glfw;
 
-use glfw::{Context}; // Action Key
+use glfw::Context; // Action Key
 mod fps_counter;
 use fps_counter::FpsCounter;
 mod shader_n_program;
