@@ -8,8 +8,8 @@ mod shader_n_program;
 mod vao_n_vbo;
 use fps_counter::FpsCounter;
 use shader_n_program::{Shader, ShaderType, ShaderProgram};
-use vao_n_vbo::{VAO, VBO, Vertex};
-use drawable::Scene;
+use vao_n_vbo::{Vertex};
+use drawable::{Drawable, Scene};
 
 
 fn main() {
@@ -34,17 +34,7 @@ fn main() {
     }
 
     let mut my_scene = Scene::new();
-    my_scene.load_obj("models/triangle.obj").unwrap();
-
-    let vertex_buffer = VBO::new(gl::ARRAY_BUFFER);
-    
-    unsafe {
-        vertex_buffer.set_data(&my_scene.vertices, gl::STATIC_DRAW);
-    }
-    for vertex in &my_scene.vertices {
-        println!("{:?}", vertex);
-    }
-    let vertex_array = VAO::new();
+    my_scene.load_obj("models/cube.obj").unwrap();
 
 
     let vertex_shader = Shader::new("shaders/vertex/simple.vert", ShaderType::Vertex)
@@ -66,19 +56,34 @@ fn main() {
 
         // Render
         unsafe {
+            gl::ClearColor(0.3, 0.3, 0.3, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
             shader_program.apply();
 
             let pos_attrib = shader_program.get_attrib_location("position").unwrap();
-            set_attribute!(vertex_array, pos_attrib, Vertex::0);
-            let normal_attrib = shader_program.get_attrib_location("normal").unwrap();
-            set_attribute!(vertex_array, normal_attrib, Vertex::1);
-
-            gl::ClearColor(0.3, 0.3, 0.3, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            let vao = &my_scene.vao;
+            set_attribute!(vao, pos_attrib, Vertex::0);
+            match shader_program.get_attrib_location("normal") {
+                Ok(normal_attrib) => {
+                    set_attribute!(vao, normal_attrib, Vertex::1);
+                }
+                Err(_) => {}
+            }
+            match shader_program.get_attrib_location("texCoord") {
+                Ok(tex_coord_attrib) => {
+                    set_attribute!(vao, tex_coord_attrib, Vertex::2);
+                }
+                Err(_) => {}
+            }
+            match shader_program.get_uniform_location("time") {
+                Ok(time_uniform) => {
+                    let time = glfw.get_time() as f32;
+                    gl::Uniform1f(time_uniform as i32, time);
+                }
+                Err(_) => {}
+            }
             shader_program.apply();
-            vertex_array.bind();
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            my_scene.draw();
 
 
         }

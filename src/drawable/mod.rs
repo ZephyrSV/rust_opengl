@@ -1,56 +1,85 @@
-use crate::vao_n_vbo::Vertex;
+use crate::vao_n_vbo::{Vertex, VAO, VBO};
 pub trait Drawable{
     fn draw(&self);
 }
 
 pub struct Scene {
-    pub meshes: Vec<tobj::Mesh>,
+    pub meshes: Vec<Mesh>,
+    pub vao: VAO,
+    pub vbos: Vec<VBO>,
+}
+
+pub struct Mesh {
     pub vertices: Vec<Vertex>,
+    pub indices: Vec<u32>,
 }
 
 impl Scene {
     pub fn new() -> Self {
         Self {
-            meshes: Vec::new(), //todo remove
-            vertices: Vec::new(),
+            meshes: Vec::new(), 
+            vao: VAO::new(),
+            vbos: Vec::new(),
         }
     }
     pub fn load_obj(&mut self, path: &str) -> Result<(), tobj::LoadError> {
         let (models, _) = tobj::load_obj(path)?;
-        for model in models {
-            self.meshes.push(model.mesh);
-        }
-        for mesh in &self.meshes {
-            println!("Mesh: {:?}", mesh);
-        }
-        for mesh in &self.meshes {
-            for i in 0..mesh.positions.len() / 3 {
-                let mut vertex = Vertex(
+        for model in models.iter() {
+            let mut mesh = Mesh {
+                vertices: Vec::new(),
+                indices: Vec::new(),
+            };
+            for i in 0..model.mesh.indices.len() {
+                let i = model.mesh.indices[i] as usize;
+                let normals: [f32; 3];
+                if let Some(norm) = model.mesh.normals.get(i * 3..i * 3 + 3) {
+                    normals = [norm[0], norm[1], norm[2]];
+                } else {
+                    normals = [0.0, 0.0, 0.0];
+                }
+                let tex_coords: [f32; 2];
+                if let Some(tex) = model.mesh.texcoords.get(i * 2..i * 2 + 2) {
+                    tex_coords = [tex[0], tex[1]];
+                } else {
+                    tex_coords = [0.0, 0.0];
+                }
+                let vertex = Vertex(
                     [
-                        mesh.positions[i * 3],
-                        mesh.positions[i * 3 + 1],
-                        mesh.positions[i * 3 + 2],
+                        model.mesh.positions[i * 3],
+                        model.mesh.positions[i * 3 + 1],
+                        model.mesh.positions[i * 3 + 2],
                         1.0,
                     ],
-                    [0.,0.,0.], //Normal
-                    [0.,0.] //TexCoord
+                    normals, //Normal
+                    tex_coords, //TexCoords
                 );
-                if mesh.normals.len() > 0 {
-                    vertex.1 = [
-                        mesh.normals[i * 3],
-                        mesh.normals[i * 3 + 1],
-                        mesh.normals[i * 3 + 2],
-                    ];
-                }
-                if mesh.texcoords.len() > 0 {
-                    vertex.2 = [
-                        mesh.texcoords[i*2],
-                        mesh.texcoords[i*2+1],
-                    ]
-                }
-                self.vertices.push(vertex);
+                mesh.vertices.push(vertex);
+                mesh.indices.push(i as u32);
             }
+            let vbo = VBO::new(gl::ARRAY_BUFFER);
+            unsafe {
+                vbo.set_data(&mesh.vertices, gl::STATIC_DRAW);
+            }
+            print!("Vertices: ");
+            for vertex in &mesh.vertices {
+                println!("{:?}", vertex);
+            }
+            self.meshes.push(mesh);
+            self.vbos.push(vbo);
         }
         Ok(())
+    }
+}
+
+impl Drawable for Scene{
+    fn draw(&self) {
+        unsafe {
+            self.vao.bind();
+            assert_eq!(self.vbos.len(), self.meshes.len());
+            for i in 0..self.vbos.len() {
+                self.vbos[i].bind();
+                gl::DrawArrays(gl::TRIANGLES, 0, self.meshes[i].vertices.len() as i32);
+            }
+        }
     }
 }

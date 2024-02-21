@@ -119,6 +119,11 @@ impl ShaderProgram {
         let attrib = std::ffi::CString::new(attrib)?;
         Ok(gl::GetAttribLocation(self.id, attrib.as_ptr()) as gl::types::GLuint)
     }
+
+    pub unsafe fn get_uniform_location(&self, uniform: &str) -> Result<gl::types::GLuint, std::ffi::NulError> {
+        let uniform = std::ffi::CString::new(uniform)?;
+        Ok(gl::GetUniformLocation(self.id, uniform.as_ptr()) as gl::types::GLuint)
+    }
 }
 
 impl Drop for ShaderProgram {
