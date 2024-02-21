@@ -1,10 +1,13 @@
 use gl::types::{GLuint, GLint};
 
-type Pos = [f32; 2];
-type Color = [f32; 3];
+
+type Pos = [f32; 4];
+type Norm = [f32; 3];
+type TexCoord = [f32; 2];
 
 #[repr(C, packed)]
-pub struct Vertex(pub Pos, pub Color);
+#[derive(Debug)]
+pub struct Vertex(pub Pos, pub Norm, pub TexCoord);
 
 
 pub struct VBO {

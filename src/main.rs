@@ -3,29 +3,13 @@ extern crate glfw;
 
 use glfw::Context; // Action Key
 mod fps_counter;
-use fps_counter::FpsCounter;
+mod drawable;
 mod shader_n_program;
-use shader_n_program::{Shader, ShaderType, ShaderProgram};
 mod vao_n_vbo;
+use fps_counter::FpsCounter;
+use shader_n_program::{Shader, ShaderType, ShaderProgram};
 use vao_n_vbo::{VAO, VBO, Vertex};
-
-#[macro_export]
-macro_rules! set_attribute {
-    ($vbo:ident, $pos:tt, $t:ident :: $field:tt) => {{
-        let dummy = core::mem::MaybeUninit::<$t>::uninit();
-        let dummy_ptr = dummy.as_ptr();
-        let member_ptr = core::ptr::addr_of!((*dummy_ptr).$field);
-        const fn size_of_raw<T>(_: *const T) -> usize {
-            core::mem::size_of::<T>()
-        }
-        let member_offset = member_ptr as i32 - dummy_ptr as i32;
-        $vbo.set_attribute::<$t>(
-            $pos,
-            (size_of_raw(member_ptr) / core::mem::size_of::<f32>()) as i32,
-            member_offset,
-        )
-    }};
-}
+use drawable::Scene;
 
 
 fn main() {
@@ -41,6 +25,7 @@ fn main() {
     window.make_current();
     window.set_key_polling(true);
     gl::load_with(|s| window.get_proc_address(s) as *const _);
+    //glfw.set_swap_interval(glfw::SwapInterval::Sync(0));
 
     // Initialize OpenGL
     unsafe {
@@ -48,18 +33,17 @@ fn main() {
         gl::ClearColor(0.2, 0.3, 0.3, 1.0);
     }
 
-    #[rustfmt::skip]
-    const VERTICES: [Vertex; 3] = [
-        Vertex([-0.5, -0.5], [1.0, 0.0, 0.0]),
-        Vertex([0.5,  -0.5], [0.0, 1.0, 0.0]),
-        Vertex([0.0,   0.5], [0.0, 0.0, 1.0])
-    ];
+    let mut my_scene = Scene::new();
+    my_scene.load_obj("models/triangle.obj").unwrap();
 
     let vertex_buffer = VBO::new(gl::ARRAY_BUFFER);
-    unsafe {
-        vertex_buffer.set_data(&VERTICES, gl::STATIC_DRAW);
-    }
     
+    unsafe {
+        vertex_buffer.set_data(&my_scene.vertices, gl::STATIC_DRAW);
+    }
+    for vertex in &my_scene.vertices {
+        println!("{:?}", vertex);
+    }
     let vertex_array = VAO::new();
 
 
@@ -67,6 +51,11 @@ fn main() {
             .expect("could not load vertex shader");
     let fragment_shader = Shader::new("shaders/fragment/simple.frag", ShaderType::Fragment)
             .expect("could not load fragment shader");
+
+    /*let vertex_shader = Shader::new("shaders/vertex/auto-rotate.vert", ShaderType::Vertex)
+            .expect("could not load vertex shader");
+    let fragment_shader = Shader::new("shaders/fragment/auto-rotate.frag", ShaderType::Fragment)
+            .expect("could not load fragment shader");*/
 
     let shader_program = ShaderProgram::new(&[vertex_shader, fragment_shader])
             .expect("could not create shader program");
@@ -82,8 +71,8 @@ fn main() {
 
             let pos_attrib = shader_program.get_attrib_location("position").unwrap();
             set_attribute!(vertex_array, pos_attrib, Vertex::0);
-            let color_attrib = shader_program.get_attrib_location("color").unwrap();
-            set_attribute!(vertex_array, color_attrib, Vertex::1);
+            let normal_attrib = shader_program.get_attrib_location("normal").unwrap();
+            set_attribute!(vertex_array, normal_attrib, Vertex::1);
 
             gl::ClearColor(0.3, 0.3, 0.3, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
