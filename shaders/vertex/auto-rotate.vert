@@ -1,27 +1,19 @@
 #version 330 core
 
-layout (location = 0) in vec3 position;
-layout (location = 1) in vec3 normal;
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec3 normal;
 layout (location = 2) in vec2 texCoord;
 
-out vec4 frontColor;
-out vec2 vtexCoord;
-out vec3 N;
+out vec3 FragPos;     // FragPos is the position of the fragment in world space
+out vec3 Normal_worldSpace;      // Normal in world space
 
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 
-uniform mat4 viewMatrix;
-uniform mat4 modelMatrix;
-uniform mat4 projectionMatrix;
-uniform mat3 normalMatrix;
-
-
-uniform float time;
-vec4 rand_color = vec4(0.5+0.5*(gl_VertexID%2), 0.5+0.5*((gl_VertexID/2)%2), 0.5+0.5*((gl_VertexID/4)%2), 1);
-                               
 void main()
 {
-    N = normalize(normalMatrix*normal);
-    frontColor = rand_color;
-    vtexCoord = texCoord;
-    gl_Position = projectionMatrix* viewMatrix *modelMatrix*(vec4(position, 1.0));
+    gl_Position = projection * view * model * vec4(position, 1.0);
+    FragPos = vec3(model * vec4(position, 1.0));
+    Normal_worldSpace = mat3(transpose(inverse(model))) * normal; // Transform normal to world space
 }

@@ -1,4 +1,13 @@
-use crate::vao_n_vbo::{Vertex, VAO, VBO};
+use crate::vao_n_vbo::{VBO, VAO};
+
+type Pos = [f32; 3];
+type Norm = [f32; 3];
+type TexCoord = [f32; 2];
+
+#[repr(C, packed)]
+#[derive(Debug)]
+pub struct Vertex(pub Pos, pub Norm, pub TexCoord);
+
 pub trait Drawable{
     fn draw(&self);
 }
@@ -24,11 +33,12 @@ impl Scene {
     }
     pub fn load_obj(&mut self, path: &str) -> Result<(), tobj::LoadError> {
         let (models, _) = tobj::load_obj(path)?;
+
+        let mut mesh = Mesh {
+            vertices: Vec::new(),
+            indices: Vec::new(),
+        };
         for model in models.iter() {
-            let mut mesh = Mesh {
-                vertices: Vec::new(),
-                indices: Vec::new(),
-            };
             for i in 0..model.mesh.indices.len() {
                 let i = model.mesh.indices[i] as usize;
                 let normals: [f32; 3];
@@ -48,7 +58,6 @@ impl Scene {
                         model.mesh.positions[i * 3],
                         model.mesh.positions[i * 3 + 1],
                         model.mesh.positions[i * 3 + 2],
-                        1.0,
                     ],
                     normals, //Normal
                     tex_coords, //TexCoords
@@ -56,17 +65,13 @@ impl Scene {
                 mesh.vertices.push(vertex);
                 mesh.indices.push(i as u32);
             }
-            let vbo = VBO::new(gl::ARRAY_BUFFER);
-            unsafe {
-                vbo.set_data(&mesh.vertices, gl::STATIC_DRAW);
-            }
-            print!("Vertices: ");
-            for vertex in &mesh.vertices {
-                println!("{:?}", vertex);
-            }
-            self.meshes.push(mesh);
-            self.vbos.push(vbo);
         }
+        let vbo = VBO::new(gl::ARRAY_BUFFER);
+        unsafe {
+            vbo.set_data(&mesh.vertices, gl::STATIC_DRAW);
+        }
+        self.meshes.push(mesh);
+        self.vbos.push(vbo);
         Ok(())
     }
 }

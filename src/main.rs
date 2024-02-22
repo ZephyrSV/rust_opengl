@@ -8,8 +8,7 @@ mod shader_n_program;
 mod vao_n_vbo;
 use fps_counter::FpsCounter;
 use shader_n_program::{Shader, ShaderType, ShaderProgram};
-use vao_n_vbo::{Vertex};
-use drawable::{Drawable, Scene};
+use drawable::{Vertex, Drawable, Scene};
 
 
 fn main() {
@@ -39,7 +38,7 @@ fn main() {
     }
 
     let mut my_scene = Scene::new();
-    my_scene.load_obj("models/cube.obj").unwrap();
+    my_scene.load_obj("models/cube.obj").map_err(|e| println!("Error: {:?}", e)).unwrap();
 
 
     let vertex_shader = Shader::new("shaders/vertex/auto-rotate.vert", ShaderType::Vertex)
@@ -65,7 +64,7 @@ fn main() {
             set_attribute!(vao, pos_attrib, Vertex::0);
             let _ = shader_program.get_attrib_location("normal").map(|location| {
                 set_attribute!(vao, location, Vertex::1);
-            }).inspect_err(|x| println!("Error: {:?}", x));;
+            }).inspect_err(|x| println!("Error: {:?}", x));
             let _ = shader_program.get_attrib_location("texCoord").map(|location| {
                 set_attribute!(vao, location, Vertex::2);
             }).inspect_err(|x| println!("Error: {:?}", x));
@@ -74,20 +73,19 @@ fn main() {
             // Set up the model, view, and projection matrices
             let mut model_matrix = nalgebra::Matrix4::new_translation(&nalgebra::Vector3::new(0.0, 0.0, 0.0));
             let angle = glfw.get_time() as f32;
-            model_matrix *= nalgebra::Matrix4::from_euler_angles(angle, 0.0, angle);
+            model_matrix *= nalgebra::Matrix4::from_euler_angles(0.0,angle, angle);
             let view_matrix = nalgebra::Matrix4::new_translation(&nalgebra::Vector3::new(0.0, 0.0, -3.0));
             let projection = nalgebra::Perspective3::new(800.0 / 600.0, 3.14 / 2.0, 0.1, 100.0);
             let normal_matrix = model_matrix.fixed_resize::<3, 3>(0.0).transpose().try_inverse().unwrap().transpose();
 
 
-            let _ = shader_program.get_uniform_location("modelMatrix").map(|x| {
+            let _ = shader_program.get_uniform_location("model").map(|x| {
                 gl::UniformMatrix4fv(x as i32, 1, gl::FALSE, model_matrix.as_ptr());
             });
-            let _ = shader_program.get_uniform_location("viewMatrix").map(|x| {
+            let _ = shader_program.get_uniform_location("view").map(|x| {
                 gl::UniformMatrix4fv(x as i32, 1, gl::FALSE, view_matrix.as_ptr());
             });
-
-            let _ = shader_program.get_uniform_location("projectionMatrix").map(|x| {
+            let _ = shader_program.get_uniform_location("projection").map(|x| {
                 gl::UniformMatrix4fv(x as i32, 1, gl::FALSE, projection.as_matrix().as_ptr());
             }); 
             let _ = shader_program.get_uniform_location("normalMatrix").map(|x| {
@@ -98,6 +96,19 @@ fn main() {
             let _ = shader_program.get_uniform_location("time").map(|x| {
                     gl::Uniform1f(x as i32, time);
             });
+            let light_pos = nalgebra::Vector3::new(-1.0, 0.4, 2.0);
+            let _ = shader_program.get_uniform_location("lightPos").map(|x| {
+                gl::Uniform3fv(x as i32, 1, light_pos.as_ptr());
+            }).map_err(|x| println!("Error: {:?}", x));
+            let light_color = nalgebra::Vector3::new(1.0, 1.0, 1.0);
+            let _ = shader_program.get_uniform_location("lightColor").map(|x| {
+                gl::Uniform3fv(x as i32, 1, light_color.as_ptr());
+            }).map_err(|x| println!("Error: {:?}", x));
+            let object_color = nalgebra::Vector3::new(1.0, 0.5, 0.31);
+            let _ = shader_program.get_uniform_location("objectColor").map(|x| {
+                gl::Uniform3fv(x as i32, 1, object_color.as_ptr());
+            }).map_err(|x| println!("Error: {:?}", x));
+
 
             for mesh in &my_scene.meshes {
                 for vertex in &mesh.vertices {

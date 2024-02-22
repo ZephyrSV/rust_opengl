@@ -124,10 +124,8 @@ impl ShaderProgram {
         let uniform = std::ffi::CString::new(uniform).unwrap();
         let uniform_location = gl::GetUniformLocation(self.id, uniform.as_ptr());
         if uniform_location == -1 {
-            println!("Uniform {} not found", uniform.to_str().unwrap());
             return Err(format!("Uniform {} not found", uniform.to_str().unwrap()));
         }
-        println!("Uniform {} found at location {}", uniform.to_str().unwrap(), uniform_location);
         Ok(uniform_location as gl::types::GLuint)
     }
 }
