@@ -76,7 +76,7 @@ fn main() {
             model_matrix *= nalgebra::Matrix4::from_euler_angles(0.0,angle, angle);
             let view_matrix = nalgebra::Matrix4::new_translation(&nalgebra::Vector3::new(0.0, 0.0, -3.0));
             let projection = nalgebra::Perspective3::new(800.0 / 600.0, 3.14 / 2.0, 0.1, 100.0);
-            let normal_matrix = model_matrix.fixed_resize::<3, 3>(0.0).transpose().try_inverse().unwrap().transpose();
+            let normal_matrix = model_matrix.fixed_resize::<3, 3>(0.0).try_inverse().unwrap().transpose();
 
 
             let _ = shader_program.get_uniform_location("model").map(|x| {

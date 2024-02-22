@@ -10,10 +10,11 @@ out vec3 Normal_worldSpace;      // Normal in world space
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat3 normalMatrix;
 
 void main()
 {
     gl_Position = projection * view * model * vec4(position, 1.0);
     FragPos = vec3(model * vec4(position, 1.0));
-    Normal_worldSpace = mat3(transpose(inverse(model))) * normal; // Transform normal to world space
+    Normal_worldSpace = normalMatrix * normal; // Transform normal to world space
 }
