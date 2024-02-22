@@ -120,9 +120,15 @@ impl ShaderProgram {
         Ok(gl::GetAttribLocation(self.id, attrib.as_ptr()) as gl::types::GLuint)
     }
 
-    pub unsafe fn get_uniform_location(&self, uniform: &str) -> Result<gl::types::GLuint, std::ffi::NulError> {
-        let uniform = std::ffi::CString::new(uniform)?;
-        Ok(gl::GetUniformLocation(self.id, uniform.as_ptr()) as gl::types::GLuint)
+    pub unsafe fn get_uniform_location(&self, uniform: &str) -> Result<gl::types::GLuint, String> {
+        let uniform = std::ffi::CString::new(uniform).unwrap();
+        let uniform_location = gl::GetUniformLocation(self.id, uniform.as_ptr());
+        if uniform_location == -1 {
+            println!("Uniform {} not found", uniform.to_str().unwrap());
+            return Err(format!("Uniform {} not found", uniform.to_str().unwrap()));
+        }
+        println!("Uniform {} found at location {}", uniform.to_str().unwrap(), uniform_location);
+        Ok(uniform_location as gl::types::GLuint)
     }
 }
 

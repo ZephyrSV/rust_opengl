@@ -26,6 +26,11 @@ fn main() {
     window.set_key_polling(true);
     gl::load_with(|s| window.get_proc_address(s) as *const _);
     //glfw.set_swap_interval(glfw::SwapInterval::Sync(0));
+    //enable backface culling
+    unsafe {
+        gl::Enable(gl::CULL_FACE);
+        gl::CullFace(gl::BACK);
+    }
 
     // Initialize OpenGL
     unsafe {
@@ -37,15 +42,10 @@ fn main() {
     my_scene.load_obj("models/cube.obj").unwrap();
 
 
-    let vertex_shader = Shader::new("shaders/vertex/simple.vert", ShaderType::Vertex)
-            .expect("could not load vertex shader");
-    let fragment_shader = Shader::new("shaders/fragment/simple.frag", ShaderType::Fragment)
-            .expect("could not load fragment shader");
-
-    /*let vertex_shader = Shader::new("shaders/vertex/auto-rotate.vert", ShaderType::Vertex)
+    let vertex_shader = Shader::new("shaders/vertex/auto-rotate.vert", ShaderType::Vertex)
             .expect("could not load vertex shader");
     let fragment_shader = Shader::new("shaders/fragment/auto-rotate.frag", ShaderType::Fragment)
-            .expect("could not load fragment shader");*/
+            .expect("could not load fragment shader");
 
     let shader_program = ShaderProgram::new(&[vertex_shader, fragment_shader])
             .expect("could not create shader program");
@@ -63,24 +63,47 @@ fn main() {
             let pos_attrib = shader_program.get_attrib_location("position").unwrap();
             let vao = &my_scene.vao;
             set_attribute!(vao, pos_attrib, Vertex::0);
-            match shader_program.get_attrib_location("normal") {
-                Ok(normal_attrib) => {
-                    set_attribute!(vao, normal_attrib, Vertex::1);
+            let _ = shader_program.get_attrib_location("normal").map(|location| {
+                set_attribute!(vao, location, Vertex::1);
+            }).inspect_err(|x| println!("Error: {:?}", x));;
+            let _ = shader_program.get_attrib_location("texCoord").map(|location| {
+                set_attribute!(vao, location, Vertex::2);
+            }).inspect_err(|x| println!("Error: {:?}", x));
+            
+
+            // Set up the model, view, and projection matrices
+            let mut model_matrix = nalgebra::Matrix4::new_translation(&nalgebra::Vector3::new(0.0, 0.0, 0.0));
+            let angle = glfw.get_time() as f32;
+            model_matrix *= nalgebra::Matrix4::from_euler_angles(angle, 0.0, angle);
+            let view_matrix = nalgebra::Matrix4::new_translation(&nalgebra::Vector3::new(0.0, 0.0, -3.0));
+            let projection = nalgebra::Perspective3::new(800.0 / 600.0, 3.14 / 2.0, 0.1, 100.0);
+            let normal_matrix = model_matrix.fixed_resize::<3, 3>(0.0).transpose().try_inverse().unwrap().transpose();
+
+
+            let _ = shader_program.get_uniform_location("modelMatrix").map(|x| {
+                gl::UniformMatrix4fv(x as i32, 1, gl::FALSE, model_matrix.as_ptr());
+            });
+            let _ = shader_program.get_uniform_location("viewMatrix").map(|x| {
+                gl::UniformMatrix4fv(x as i32, 1, gl::FALSE, view_matrix.as_ptr());
+            });
+
+            let _ = shader_program.get_uniform_location("projectionMatrix").map(|x| {
+                gl::UniformMatrix4fv(x as i32, 1, gl::FALSE, projection.as_matrix().as_ptr());
+            }); 
+            let _ = shader_program.get_uniform_location("normalMatrix").map(|x| {
+                gl::UniformMatrix3fv(x as i32, 1, gl::FALSE, normal_matrix.as_ptr());
+            });
+
+            let time = glfw.get_time() as f32;
+            let _ = shader_program.get_uniform_location("time").map(|x| {
+                    gl::Uniform1f(x as i32, time);
+            });
+
+            for mesh in &my_scene.meshes {
+                for vertex in &mesh.vertices {
+                    let _normal = nalgebra::Vector3::new(vertex.1[0], vertex.1[1], vertex.1[2]);
+                    //println!("my normals {:?}", (normal_matrix*normal).normalize());
                 }
-                Err(_) => {}
-            }
-            match shader_program.get_attrib_location("texCoord") {
-                Ok(tex_coord_attrib) => {
-                    set_attribute!(vao, tex_coord_attrib, Vertex::2);
-                }
-                Err(_) => {}
-            }
-            match shader_program.get_uniform_location("time") {
-                Ok(time_uniform) => {
-                    let time = glfw.get_time() as f32;
-                    gl::Uniform1f(time_uniform as i32, time);
-                }
-                Err(_) => {}
             }
             shader_program.apply();
             my_scene.draw();
