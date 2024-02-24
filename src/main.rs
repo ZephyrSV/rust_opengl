@@ -10,6 +10,11 @@ use fps_counter::FpsCounter;
 use shader_n_program::{Shader, ShaderType, ShaderProgram};
 use drawable::{Vertex, Drawable, Scene};
 
+type Mat3 = nalgebra::Matrix3<f32>;
+type Mat4 = nalgebra::Matrix4<f32>;
+type Vec3 = nalgebra::Vector3<f32>;
+type Vec4 = nalgebra::Vector4<f32>;
+type Point3 = nalgebra::Point3<f32>;
 
 fn main() {
     // Initialize GLFW
@@ -71,10 +76,14 @@ fn main() {
             
 
             // Set up the model, view, and projection matrices
-            let mut model_matrix = nalgebra::Matrix4::new_translation(&nalgebra::Vector3::new(0.0, 0.0, 0.0));
+            let mut model_matrix = Mat4::new_translation(&Vec3::new(0.0, 0.0, 0.0));
             let angle = glfw.get_time() as f32;
-            model_matrix *= nalgebra::Matrix4::from_euler_angles(0.0,angle, angle);
-            let view_matrix = nalgebra::Matrix4::new_translation(&nalgebra::Vector3::new(0.0, 0.0, -3.0));
+            model_matrix *= Mat4::from_euler_angles(0.0,angle, angle);
+            let view_matrix = nalgebra::Matrix4::look_at_rh(
+                &Point3::new(0.0, 0.0, 3.0),
+                &Point3::new(0.0, 0.0, 0.0),
+                &Vec3::new(0.0, 1.0, 0.0),
+            );
             let projection = nalgebra::Perspective3::new(800.0 / 600.0, 3.14 / 2.0, 0.1, 100.0);
             let normal_matrix = model_matrix.fixed_resize::<3, 3>(0.0).try_inverse().unwrap().transpose();
 
@@ -96,26 +105,19 @@ fn main() {
             let _ = shader_program.get_uniform_location("time").map(|x| {
                     gl::Uniform1f(x as i32, time);
             });
-            let light_pos = nalgebra::Vector3::new(-1.0, 0.4, 2.0);
+            let light_pos = Vec3::new(-1.0, 0.4, 2.0);
             let _ = shader_program.get_uniform_location("lightPos").map(|x| {
                 gl::Uniform3fv(x as i32, 1, light_pos.as_ptr());
             }).map_err(|x| println!("Error: {:?}", x));
-            let light_color = nalgebra::Vector3::new(1.0, 1.0, 1.0);
+            let light_color = Vec3::new(1.0, 1.0, 1.0);
             let _ = shader_program.get_uniform_location("lightColor").map(|x| {
                 gl::Uniform3fv(x as i32, 1, light_color.as_ptr());
             }).map_err(|x| println!("Error: {:?}", x));
-            let object_color = nalgebra::Vector3::new(1.0, 0.5, 0.31);
+            let object_color = Vec3::new(1.0, 0.5, 0.31);
             let _ = shader_program.get_uniform_location("objectColor").map(|x| {
                 gl::Uniform3fv(x as i32, 1, object_color.as_ptr());
             }).map_err(|x| println!("Error: {:?}", x));
-
-
-            for mesh in &my_scene.meshes {
-                for vertex in &mesh.vertices {
-                    let _normal = nalgebra::Vector3::new(vertex.1[0], vertex.1[1], vertex.1[2]);
-                    //println!("my normals {:?}", (normal_matrix*normal).normalize());
-                }
-            }
+            
             shader_program.apply();
             my_scene.draw();
 

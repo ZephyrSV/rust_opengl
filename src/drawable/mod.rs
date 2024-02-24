@@ -1,4 +1,5 @@
 use crate::vao_n_vbo::{VBO, VAO};
+use crate::{Vec3, Vec4, Mat3, Mat4, Point3};
 
 type Pos = [f32; 3];
 type Norm = [f32; 3];
@@ -21,6 +22,7 @@ pub struct Scene {
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u32>,
+    pub model: Mat4,
 }
 
 impl Scene {
@@ -33,10 +35,10 @@ impl Scene {
     }
     pub fn load_obj(&mut self, path: &str) -> Result<(), tobj::LoadError> {
         let (models, _) = tobj::load_obj(path)?;
-
         let mut mesh = Mesh {
             vertices: Vec::new(),
             indices: Vec::new(),
+            model: Mat4::identity(),
         };
         for model in models.iter() {
             for i in 0..model.mesh.indices.len() {
