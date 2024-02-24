@@ -42,17 +42,8 @@ fn main() {
         gl::ClearColor(0.2, 0.3, 0.3, 1.0);
     }
 
-    let mut my_scene = Scene::new();
+    let mut my_scene = Scene::new("shaders/vertex/auto-rotate.vert", "shaders/fragment/auto-rotate.frag");
     my_scene.load_obj("models/cube.obj").map_err(|e| println!("Error: {:?}", e)).unwrap();
-
-
-    let vertex_shader = Shader::new("shaders/vertex/auto-rotate.vert", ShaderType::Vertex)
-            .expect("could not load vertex shader");
-    let fragment_shader = Shader::new("shaders/fragment/auto-rotate.frag", ShaderType::Fragment)
-            .expect("could not load fragment shader");
-
-    let shader_program = ShaderProgram::new(&[vertex_shader, fragment_shader])
-            .expect("could not create shader program");
 
     while !window.should_close() {
         // Process events
@@ -62,17 +53,7 @@ fn main() {
         unsafe {
             gl::ClearColor(0.3, 0.3, 0.3, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
-            shader_program.apply();
-
-            let pos_attrib = shader_program.get_attrib_location("position").unwrap();
-            let vao = &my_scene.vao;
-            set_attribute!(vao, pos_attrib, Vertex::0);
-            let _ = shader_program.get_attrib_location("normal").map(|location| {
-                set_attribute!(vao, location, Vertex::1);
-            }).inspect_err(|x| println!("Error: {:?}", x));
-            let _ = shader_program.get_attrib_location("texCoord").map(|location| {
-                set_attribute!(vao, location, Vertex::2);
-            }).inspect_err(|x| println!("Error: {:?}", x));
+            
             
 
             // Set up the model, view, and projection matrices
@@ -88,37 +69,37 @@ fn main() {
             let normal_matrix = model_matrix.fixed_resize::<3, 3>(0.0).try_inverse().unwrap().transpose();
 
 
-            let _ = shader_program.get_uniform_location("model").map(|x| {
+            let _ = my_scene.shader_program.get_uniform_location("model").map(|x| {
                 gl::UniformMatrix4fv(x as i32, 1, gl::FALSE, model_matrix.as_ptr());
             });
-            let _ = shader_program.get_uniform_location("view").map(|x| {
+            let _ = my_scene.shader_program.get_uniform_location("view").map(|x| {
                 gl::UniformMatrix4fv(x as i32, 1, gl::FALSE, view_matrix.as_ptr());
             });
-            let _ = shader_program.get_uniform_location("projection").map(|x| {
+            let _ = my_scene.shader_program.get_uniform_location("projection").map(|x| {
                 gl::UniformMatrix4fv(x as i32, 1, gl::FALSE, projection.as_matrix().as_ptr());
             }); 
-            let _ = shader_program.get_uniform_location("normalMatrix").map(|x| {
+            let _ = my_scene.shader_program.get_uniform_location("normalMatrix").map(|x| {
                 gl::UniformMatrix3fv(x as i32, 1, gl::FALSE, normal_matrix.as_ptr());
             });
 
             let time = glfw.get_time() as f32;
-            let _ = shader_program.get_uniform_location("time").map(|x| {
+            let _ = my_scene.shader_program.get_uniform_location("time").map(|x| {
                     gl::Uniform1f(x as i32, time);
             });
             let light_pos = Vec3::new(-1.0, 0.4, 2.0);
-            let _ = shader_program.get_uniform_location("lightPos").map(|x| {
+            let _ = my_scene.shader_program.get_uniform_location("lightPos").map(|x| {
                 gl::Uniform3fv(x as i32, 1, light_pos.as_ptr());
             }).map_err(|x| println!("Error: {:?}", x));
             let light_color = Vec3::new(1.0, 1.0, 1.0);
-            let _ = shader_program.get_uniform_location("lightColor").map(|x| {
+            let _ = my_scene.shader_program.get_uniform_location("lightColor").map(|x| {
                 gl::Uniform3fv(x as i32, 1, light_color.as_ptr());
             }).map_err(|x| println!("Error: {:?}", x));
             let object_color = Vec3::new(1.0, 0.5, 0.31);
-            let _ = shader_program.get_uniform_location("objectColor").map(|x| {
+            let _ = my_scene.shader_program.get_uniform_location("objectColor").map(|x| {
                 gl::Uniform3fv(x as i32, 1, object_color.as_ptr());
             }).map_err(|x| println!("Error: {:?}", x));
-            
-            shader_program.apply();
+
+            my_scene.shader_program.apply();
             my_scene.draw();
 
 

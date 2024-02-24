@@ -1,4 +1,6 @@
 use crate::vao_n_vbo::{VBO, VAO};
+use crate::set_attribute;
+use crate::shader_n_program::{Shader, ShaderProgram, ShaderType};
 use crate::{Vec3, Vec4, Mat3, Mat4, Point3};
 
 type Pos = [f32; 3];
@@ -17,6 +19,8 @@ pub struct Scene {
     pub meshes: Vec<Mesh>,
     pub vao: VAO,
     pub vbos: Vec<VBO>,
+    pub shader_program: ShaderProgram,
+    pub view: Mat4,
 }
 
 pub struct Mesh {
@@ -26,11 +30,17 @@ pub struct Mesh {
 }
 
 impl Scene {
-    pub fn new() -> Self {
+    pub fn new(vertex_shader_location: &str, fragment_shader_location: &str) -> Self {
+        let vertex_shader = Shader::new(vertex_shader_location, ShaderType::Vertex)
+                .expect("could not load vertex shader");
+        let fragment_shader = Shader::new(fragment_shader_location, ShaderType::Fragment)
+                .expect("could not load fragment shader");
         Self {
             meshes: Vec::new(), 
             vao: VAO::new(),
             vbos: Vec::new(),
+            shader_program: ShaderProgram::new(&[vertex_shader, fragment_shader]).expect("could not create shader program"),
+            view: Mat4::identity(),
         }
     }
     pub fn load_obj(&mut self, path: &str) -> Result<(), tobj::LoadError> {
@@ -81,7 +91,19 @@ impl Scene {
 impl Drawable for Scene{
     fn draw(&self) {
         unsafe {
+            self.shader_program.apply();
             self.vao.bind();
+            //
+            let pos_attrib = self.shader_program.get_attrib_location("position").unwrap();
+            let vao = &self.vao;
+            set_attribute!(vao, pos_attrib, Vertex::0);
+            let _ = self.shader_program.get_attrib_location("normal").map(|location| {
+                set_attribute!(vao, location, Vertex::1);
+            }).inspect_err(|x| println!("Error: {:?}", x));
+            let _ = self.shader_program.get_attrib_location("texCoord").map(|location| {
+                set_attribute!(vao, location, Vertex::2);
+            }).inspect_err(|x| println!("Error: {:?}", x));
+            //
             assert_eq!(self.vbos.len(), self.meshes.len());
             for i in 0..self.vbos.len() {
                 self.vbos[i].bind();
