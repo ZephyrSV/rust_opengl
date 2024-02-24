@@ -44,6 +44,11 @@ fn main() {
 
     let mut my_scene = Scene::new("shaders/vertex/auto-rotate.vert", "shaders/fragment/auto-rotate.frag");
     my_scene.load_obj("models/cube.obj").map_err(|e| println!("Error: {:?}", e)).unwrap();
+    my_scene.view = nalgebra::Matrix4::look_at_rh(
+        &Point3::new(0.0, 0.0, 3.0),
+        &Point3::new(0.0, 0.0, 0.0),
+        &Vec3::new(0.0, 1.0, 0.0),
+    );
 
     while !window.should_close() {
         // Process events
@@ -60,32 +65,9 @@ fn main() {
             let mut model_matrix = Mat4::new_translation(&Vec3::new(0.0, 0.0, 0.0));
             let angle = glfw.get_time() as f32;
             model_matrix *= Mat4::from_euler_angles(0.0,angle, angle);
-            let view_matrix = nalgebra::Matrix4::look_at_rh(
-                &Point3::new(0.0, 0.0, 3.0),
-                &Point3::new(0.0, 0.0, 0.0),
-                &Vec3::new(0.0, 1.0, 0.0),
-            );
-            let projection = nalgebra::Perspective3::new(800.0 / 600.0, 3.14 / 2.0, 0.1, 100.0);
-            let normal_matrix = model_matrix.fixed_resize::<3, 3>(0.0).try_inverse().unwrap().transpose();
+            my_scene.meshes[0].model = model_matrix;
 
-
-            let _ = my_scene.shader_program.get_uniform_location("model").map(|x| {
-                gl::UniformMatrix4fv(x as i32, 1, gl::FALSE, model_matrix.as_ptr());
-            });
-            let _ = my_scene.shader_program.get_uniform_location("view").map(|x| {
-                gl::UniformMatrix4fv(x as i32, 1, gl::FALSE, view_matrix.as_ptr());
-            });
-            let _ = my_scene.shader_program.get_uniform_location("projection").map(|x| {
-                gl::UniformMatrix4fv(x as i32, 1, gl::FALSE, projection.as_matrix().as_ptr());
-            }); 
-            let _ = my_scene.shader_program.get_uniform_location("normalMatrix").map(|x| {
-                gl::UniformMatrix3fv(x as i32, 1, gl::FALSE, normal_matrix.as_ptr());
-            });
-
-            let time = glfw.get_time() as f32;
-            let _ = my_scene.shader_program.get_uniform_location("time").map(|x| {
-                    gl::Uniform1f(x as i32, time);
-            });
+            
             let light_pos = Vec3::new(-1.0, 0.4, 2.0);
             let _ = my_scene.shader_program.get_uniform_location("lightPos").map(|x| {
                 gl::Uniform3fv(x as i32, 1, light_pos.as_ptr());
@@ -99,8 +81,7 @@ fn main() {
                 gl::Uniform3fv(x as i32, 1, object_color.as_ptr());
             }).map_err(|x| println!("Error: {:?}", x));
 
-            my_scene.shader_program.apply();
-            my_scene.draw();
+            my_scene.draw(&glfw);
 
 
         }

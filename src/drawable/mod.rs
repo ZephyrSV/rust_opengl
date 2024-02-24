@@ -12,7 +12,7 @@ type TexCoord = [f32; 2];
 pub struct Vertex(pub Pos, pub Norm, pub TexCoord);
 
 pub trait Drawable{
-    fn draw(&self);
+    fn draw(&self, glfw: &glfw::Glfw);
 }
 
 pub struct Scene {
@@ -21,6 +21,7 @@ pub struct Scene {
     pub vbos: Vec<VBO>,
     pub shader_program: ShaderProgram,
     pub view: Mat4,
+    pub projection: Mat4,
 }
 
 pub struct Mesh {
@@ -41,6 +42,7 @@ impl Scene {
             vbos: Vec::new(),
             shader_program: ShaderProgram::new(&[vertex_shader, fragment_shader]).expect("could not create shader program"),
             view: Mat4::identity(),
+            projection: nalgebra::Perspective3::new(800.0 / 600.0, 3.14 / 2.0, 0.1, 100.0).into(),
         }
     }
     pub fn load_obj(&mut self, path: &str) -> Result<(), tobj::LoadError> {
@@ -89,11 +91,13 @@ impl Scene {
 }
 
 impl Drawable for Scene{
-    fn draw(&self) {
+    fn draw(&self, glfw: &glfw::Glfw) {
         unsafe {
+            // Bind the shader program and the VAO
             self.shader_program.apply();
             self.vao.bind();
-            //
+
+            // Set up the vertex attributes
             let pos_attrib = self.shader_program.get_attrib_location("position").unwrap();
             let vao = &self.vao;
             set_attribute!(vao, pos_attrib, Vertex::0);
@@ -103,10 +107,30 @@ impl Drawable for Scene{
             let _ = self.shader_program.get_attrib_location("texCoord").map(|location| {
                 set_attribute!(vao, location, Vertex::2);
             }).inspect_err(|x| println!("Error: {:?}", x));
-            //
+
+            // Set up the view, and projection matrices
+            let _ = self.shader_program.get_uniform_location("view").map(|x| {
+                gl::UniformMatrix4fv(x as i32, 1, gl::FALSE, self.view.as_ptr());
+            });
+            let _ = self.shader_program.get_uniform_location("projection").map(|x| {
+                gl::UniformMatrix4fv(x as i32, 1, gl::FALSE, self.projection.as_ptr());
+            }); 
+
+            // Set up miscellaneous uniforms
+            let time = glfw.get_time() as f32;
+            let _ = self.shader_program.get_uniform_location("time").map(|x| {
+                    gl::Uniform1f(x as i32, time);
+            });
+
+            // Draw the meshes and set their model/normal matrices
             assert_eq!(self.vbos.len(), self.meshes.len());
+            let model_location = self.shader_program.get_uniform_location("model").unwrap();
+            let normal_matrix_location = self.shader_program.get_uniform_location("normalMatrix").unwrap();
             for i in 0..self.vbos.len() {
                 self.vbos[i].bind();
+                gl::UniformMatrix4fv(model_location as i32, 1, gl::FALSE, self.meshes[i].model.as_ptr());
+                let normal_matrix = self.meshes[i].model.fixed_resize::<3, 3>(0.0).try_inverse().unwrap().transpose();
+                gl::UniformMatrix3fv(normal_matrix_location as i32, 1, gl::FALSE, normal_matrix.as_ptr());
                 gl::DrawArrays(gl::TRIANGLES, 0, self.meshes[i].vertices.len() as i32);
             }
         }
