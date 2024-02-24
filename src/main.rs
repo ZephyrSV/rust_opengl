@@ -20,7 +20,7 @@ fn main() {
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
 
-    let (mut window, _events) = glfw.create_window(800, 600, "OpenGL", glfw::WindowMode::Windowed)
+    let (mut window, _events) = glfw.create_window(800, 600, "Rotating Cube", glfw::WindowMode::Windowed)
         .expect("Failed to create GLFW window.");
 
     window.make_current();
@@ -39,8 +39,12 @@ fn main() {
         gl::ClearColor(0.2, 0.3, 0.3, 1.0);
     }
 
-    let mut my_scene = Scene::new("shaders/vertex/auto-rotate.vert", "shaders/fragment/auto-rotate.frag");
-    my_scene.load_obj("models/cube.obj").map_err(|e| println!("Error: {:?}", e)).unwrap();
+    let mut my_scene = Scene::new(
+        "shaders/vertex/auto-rotate.vert",
+         "shaders/fragment/auto-rotate.frag",
+        );
+    my_scene.load_obj("models/cube.obj")
+        .map_err(|e| println!("Error: {:?}", e)).unwrap();
     my_scene.view = nalgebra::Matrix4::look_at_rh(
         &Point3::new(0.0, 0.0, 3.0),
         &Point3::new(0.0, 0.0, 0.0),
@@ -56,17 +60,11 @@ fn main() {
             gl::ClearColor(0.3, 0.3, 0.3, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
             
-            
-
-            // Set up the model, view, and projection matrices
-            let mut model_matrix = Mat4::new_translation(&Vec3::new(0.0, 0.0, 0.0));
+            // Update model matrix to rotate the cube
             let angle = glfw.get_time() as f32;
-            model_matrix *= Mat4::from_euler_angles(0.0,angle, angle);
-            my_scene.meshes[0].model = model_matrix;
+            my_scene.meshes[0].model = Mat4::from_euler_angles(0.0,angle, angle);
 
             my_scene.draw(&glfw);
-
-
         }
 
         // Swap buffers
