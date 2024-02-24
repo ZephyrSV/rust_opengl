@@ -20,7 +20,7 @@ fn main() {
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
 
-    let (mut window, _events) = glfw.create_window(800, 600, "Rotating Cube", glfw::WindowMode::Windowed)
+    let (mut window, events) = glfw.create_window(800, 600, "Rotating Cube", glfw::WindowMode::Windowed)
         .expect("Failed to create GLFW window.");
 
     window.make_current();
@@ -54,6 +54,28 @@ fn main() {
     while !window.should_close() {
         // Process events
         glfw.poll_events();
+        for (_, event) in glfw::flush_messages(&events) {
+            match event {
+                glfw::WindowEvent::Key(glfw::Key::Escape, _, glfw::Action::Press, _) => {
+                    window.set_should_close(true)
+                },
+                glfw::WindowEvent::Key(glfw::Key::W, _, glfw::Action::Press, _) => {
+                    my_scene.view *= Mat4::new_translation(&Vec3::new(0.0, 0.0, 0.1));
+                },
+                glfw::WindowEvent::Key(glfw::Key::S, _, glfw::Action::Press, _) => {
+                    my_scene.view *= Mat4::new_translation(&Vec3::new(0.0, 0.0, -0.1));
+                },
+                glfw::WindowEvent::Key(glfw::Key::S, _, glfw::Action::Repeat, _) => {
+                    my_scene.view *= Mat4::new_translation(&Vec3::new(0.0, 0.0, -0.1));
+                },
+                glfw::WindowEvent::Key(glfw::Key::Slash, _, glfw::Action::Press, _) => {
+                    println!("Scale {:?}", my_scene.meshes[0].scale);
+                    my_scene.meshes[0].scale *= 0.5;
+                },
+                // Handle other key events here
+                _ => println!("Action {:?}", event)
+            }
+        }
 
         // Render
         unsafe {
@@ -62,7 +84,7 @@ fn main() {
             
             // Update model matrix to rotate the cube
             let angle = glfw.get_time() as f32;
-            my_scene.meshes[0].model = Mat4::from_euler_angles(0.0,angle, angle);
+            my_scene.meshes[0].rotate = Mat4::from_euler_angles(0.0,angle, angle);
 
             my_scene.draw(&glfw);
         }

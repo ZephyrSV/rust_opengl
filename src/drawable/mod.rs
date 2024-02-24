@@ -15,6 +15,29 @@ pub trait Drawable{
     fn draw(&self, glfw: &glfw::Glfw);
 }
 
+pub struct Mesh {
+    pub vertices: Vec<Vertex>,
+    pub indices: Vec<u32>,
+    pub scale: f32,
+    pub translate: Mat4,
+    pub rotate: Mat4,
+}
+
+impl Mesh {
+    pub fn new() -> Self {
+        Self {
+            vertices: Vec::new(),
+            indices: Vec::new(),
+            scale: 1.0,
+            translate: Mat4::identity(),
+            rotate: Mat4::identity(),
+        }
+    }
+    pub fn get_model_matrix(&self) -> Mat4 {
+        self.translate * self.rotate * Mat4::new_scaling(self.scale)
+    }
+}
+
 pub struct Scene {
     pub meshes: Vec<Mesh>,
     pub vao: VAO,
@@ -24,11 +47,6 @@ pub struct Scene {
     pub projection: Mat4,
 }
 
-pub struct Mesh {
-    pub vertices: Vec<Vertex>,
-    pub indices: Vec<u32>,
-    pub model: Mat4,
-}
 
 impl Scene {
     pub fn new(vertex_shader_location: &str, fragment_shader_location: &str) -> Self {
@@ -47,11 +65,7 @@ impl Scene {
     }
     pub fn load_obj(&mut self, path: &str) -> Result<(), tobj::LoadError> {
         let (models, _) = tobj::load_obj(path)?;
-        let mut mesh = Mesh {
-            vertices: Vec::new(),
-            indices: Vec::new(),
-            model: Mat4::identity(),
-        };
+        let mut mesh = Mesh::new();
         for model in models.iter() {
             for i in 0..model.mesh.indices.len() {
                 let i = model.mesh.indices[i] as usize;
@@ -137,12 +151,13 @@ impl Drawable for Scene{
             // Draw the meshes and set their model/normal matrices
             assert_eq!(self.vbos.len(), self.meshes.len());
             let model_location = self.shader_program.get_uniform_location("model").unwrap();
-            let normal_matrix_location = self.shader_program.get_uniform_location("normalMatrix").unwrap();
+            let normal_matrix_location = self.shader_program.get_uniform_location("normalMatrix");
             for i in 0..self.vbos.len() {
                 self.vbos[i].bind();
-                gl::UniformMatrix4fv(model_location as i32, 1, gl::FALSE, self.meshes[i].model.as_ptr());
-                let normal_matrix = self.meshes[i].model.fixed_resize::<3, 3>(0.0).try_inverse().unwrap().transpose();
-                gl::UniformMatrix3fv(normal_matrix_location as i32, 1, gl::FALSE, normal_matrix.as_ptr());
+                let model_matrix = self.meshes[i].get_model_matrix();
+                gl::UniformMatrix4fv(model_location as i32, 1, gl::FALSE, model_matrix.as_ptr());
+                let normal_matrix = model_matrix.fixed_resize::<3, 3>(0.0).try_inverse().unwrap().transpose();
+                normal_matrix_location.as_ref().map(|x| gl::UniformMatrix3fv(*x as i32, 1, gl::FALSE, normal_matrix.as_ptr()));
                 gl::DrawArrays(gl::TRIANGLES, 0, self.meshes[i].vertices.len() as i32);
             }
         }
