@@ -1,7 +1,7 @@
 use crate::vao_n_vbo::{VBO, VAO};
 use crate::set_attribute;
 use crate::shader_n_program::{Shader, ShaderProgram, ShaderType};
-use crate::{Vec3, Vec4, Mat3, Mat4, Point3};
+use crate::{Vec3, Mat4};
 
 type Pos = [f32; 3];
 type Norm = [f32; 3];
@@ -121,6 +121,18 @@ impl Drawable for Scene{
             let _ = self.shader_program.get_uniform_location("time").map(|x| {
                     gl::Uniform1f(x as i32, time);
             });
+            let light_pos = Vec3::new(-1.0, 0.4, 2.0);
+            let _ = self.shader_program.get_uniform_location("lightPos").map(|x| {
+                gl::Uniform3fv(x as i32, 1, light_pos.as_ptr());
+            }).map_err(|x| println!("Error: {:?}", x));
+            let light_color = Vec3::new(1.0, 1.0, 1.0);
+            let _ = self.shader_program.get_uniform_location("lightColor").map(|x| {
+                gl::Uniform3fv(x as i32, 1, light_color.as_ptr());
+            }).map_err(|x| println!("Error: {:?}", x));
+            let object_color = Vec3::new(1.0, 0.5, 0.31);
+            let _ = self.shader_program.get_uniform_location("objectColor").map(|x| {
+                gl::Uniform3fv(x as i32, 1, object_color.as_ptr());
+            }).map_err(|x| println!("Error: {:?}", x));
 
             // Draw the meshes and set their model/normal matrices
             assert_eq!(self.vbos.len(), self.meshes.len());

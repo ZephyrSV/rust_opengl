@@ -7,13 +7,10 @@ mod drawable;
 mod shader_n_program;
 mod vao_n_vbo;
 use fps_counter::FpsCounter;
-use shader_n_program::{Shader, ShaderType, ShaderProgram};
-use drawable::{Vertex, Drawable, Scene};
+use drawable::{Drawable, Scene};
 
-type Mat3 = nalgebra::Matrix3<f32>;
 type Mat4 = nalgebra::Matrix4<f32>;
 type Vec3 = nalgebra::Vector3<f32>;
-type Vec4 = nalgebra::Vector4<f32>;
 type Point3 = nalgebra::Point3<f32>;
 
 fn main() {
@@ -66,20 +63,6 @@ fn main() {
             let angle = glfw.get_time() as f32;
             model_matrix *= Mat4::from_euler_angles(0.0,angle, angle);
             my_scene.meshes[0].model = model_matrix;
-
-            
-            let light_pos = Vec3::new(-1.0, 0.4, 2.0);
-            let _ = my_scene.shader_program.get_uniform_location("lightPos").map(|x| {
-                gl::Uniform3fv(x as i32, 1, light_pos.as_ptr());
-            }).map_err(|x| println!("Error: {:?}", x));
-            let light_color = Vec3::new(1.0, 1.0, 1.0);
-            let _ = my_scene.shader_program.get_uniform_location("lightColor").map(|x| {
-                gl::Uniform3fv(x as i32, 1, light_color.as_ptr());
-            }).map_err(|x| println!("Error: {:?}", x));
-            let object_color = Vec3::new(1.0, 0.5, 0.31);
-            let _ = my_scene.shader_program.get_uniform_location("objectColor").map(|x| {
-                gl::Uniform3fv(x as i32, 1, object_color.as_ptr());
-            }).map_err(|x| println!("Error: {:?}", x));
 
             my_scene.draw(&glfw);
 
