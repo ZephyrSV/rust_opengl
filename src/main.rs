@@ -13,6 +13,10 @@ type Mat4 = nalgebra::Matrix4<f32>;
 type Vec3 = nalgebra::Vector3<f32>;
 type Point3 = nalgebra::Point3<f32>;
 
+const SCREEN_WIDTH: u32 = 800;
+const SCREEN_HEIGHT: u32 = 600;
+const CENTER_SCREEN: (u32, u32) = (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+
 fn main() {
     // Initialize GLFW
     let mut glfw = glfw::init_no_callbacks().unwrap();  
@@ -76,6 +80,10 @@ fn main() {
                 _ => println!("Action {:?}", event)
             }
         }
+        // get cursor position
+        let (xpos, ypos) = window.get_cursor_pos();
+
+        my_scene.meshes[0].translate = Mat4::new_translation(&Vec3::new(xpos as f32 -CENTER_SCREEN.0 as f32, CENTER_SCREEN.1 as f32 - ypos as f32, 0.0).map(|x| x / 100.0));
 
         // Render
         unsafe {

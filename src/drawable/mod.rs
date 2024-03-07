@@ -94,6 +94,36 @@ impl Scene {
                 mesh.indices.push(i as u32);
             }
         }
+        println!("vertices count: {}", mesh.vertices.len());
+        println!("vertices with zeroed normals: {:?}", mesh.vertices.iter().filter(|x| {
+            let normal = x.1;
+            normal == [0.0, 0.0, 0.0]
+        }).count());
+
+        if mesh.vertices.iter().all(|x| {let n = x.1; n == [0.0, 0.0, 0.0]}) {
+            println!("All normals are zeroed, re-calculating normals");
+            for i in 0..mesh.vertices.len() / 3 {
+                let v0 = Vec3::new(
+                    mesh.vertices[i*3].0[0],
+                    mesh.vertices[i*3].0[1],
+                    mesh.vertices[i*3].0[2],
+                );
+                let v1 = Vec3::new(
+                    mesh.vertices[i*3+1].0[0],
+                    mesh.vertices[i*3+1].0[1],
+                    mesh.vertices[i*3+1].0[2],
+                );
+                let v2 = Vec3::new(
+                    mesh.vertices[i*3+2].0[0],
+                    mesh.vertices[i*3+2].0[1],
+                    mesh.vertices[i*3+2].0[2],
+                );
+                let normal = (v1 - v0).cross(&(v2 - v0)).normalize();
+                mesh.vertices[i*3].1 = [normal.x, normal.y, normal.z];
+                mesh.vertices[i*3+1].1 = [normal.x, normal.y, normal.z];
+                mesh.vertices[i*3+2].1 = [normal.x, normal.y, normal.z];
+            }
+        }
         let vbo = VBO::new(gl::ARRAY_BUFFER);
         unsafe {
             vbo.set_data(&mesh.vertices, gl::STATIC_DRAW);
